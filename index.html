@@ -7,7 +7,6 @@
 <meta name="description" content="Квалифицированная юридическая помощь.&#10;Тел.: +375 44 739-60-10" />
 <link rel="canonical" href="https://fedortsova-diana.github.io/Advokat/" />
 <meta name="robots" content="index,follow,max-image-preview:large" />
-<!-- Open Graph -->
 <meta property="og:type" content="website" />
 <meta property="og:locale" content="ru_RU" />
 <meta property="og:url" content="https://fedortsova-diana.github.io/Advokat/" />
@@ -20,7 +19,6 @@
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="Адвокат Федорцова Диана Сергеевна" />
-<!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Адвокат Федорцова Диана Сергеевна" />
 <meta name="twitter:description" content="Квалифицированная юридическая помощь. Тел.: +375 44 739-60-10" />
@@ -281,10 +279,9 @@ body{
   -webkit-appearance: none;
   appearance: none;
 }
-.save-btn:hover{ opacity: .9; }
-.save-note{
-  display: none;
-}
+.save-btn:active{ opacity: .85; }
+.save-note{ display: none; }
+
 @media (max-width: 420px){
   .hero-grid{
     grid-template-columns: 1fr;
@@ -439,29 +436,31 @@ body{
       </span>
     </a>
   </div>
-</div><!-- /hero-grid -->
-</div><!-- /content -->
-</div><!-- /top-section -->
-</div><!-- /card -->
-</div><!-- /page-wrapper -->
+</div>
+</div>
+</div>
+</div>
+</div>
 
 <script>
 (function () {
   var ua = navigator.userAgent || "";
   var isIOS = /iPad|iPhone|iPod/i.test(ua) && !window.MSStream;
-  // Определяем Telegram WebView
-  var isTelegram = /Telegram/i.test(ua) || (typeof window.TelegramWebviewProxy !== "undefined") || (typeof window.TelegramWebviewProxyProto !== "undefined");
+  var isAndroid = /Android/i.test(ua);
+  var isTelegram = /Telegram/i.test(ua)
+    || typeof window.TelegramWebviewProxy !== "undefined"
+    || typeof window.TelegramWebviewProxyProto !== "undefined";
 
   var contact = {
-    last: "Федорцова",
-    first: "Диана",
+    last:   "Федорцова",
+    first:  "Диана",
     middle: "Сергеевна",
-    title: "Адвокат",
-    phone: "+375447396010",
-    email: "di.sergeewna2017@yandex.ru"
+    title:  "Адвокат",
+    phone:  "+375447396010",
+    email:  "di.sergeewna2017@yandex.ru"
   };
 
-  function vcard3() {
+  function makeVcard() {
     var L = [];
     L.push("BEGIN:VCARD");
     L.push("VERSION:3.0");
@@ -474,62 +473,74 @@ body{
     return L.join("\r\n") + "\r\n";
   }
 
-  function vcard4() {
-    var L = [];
-    L.push("BEGIN:VCARD");
-    L.push("VERSION:4.0");
-    L.push("N:" + contact.last + ";" + contact.first + ";" + contact.middle + ";;");
-    L.push("FN:" + contact.last + " " + contact.first + " " + contact.middle);
-    L.push("TITLE:" + contact.title);
-    L.push("TEL;TYPE=cell;VALUE=uri:tel:" + contact.phone);
-    L.push("EMAIL:" + contact.email);
-    L.push("END:VCARD");
-    return L.join("\r\n") + "\r\n";
-  }
-
-  var vcfText = isIOS ? vcard4() : vcard3();
-  var filename = "Fedortsova-Diana.vcf";
-
   var btn = document.getElementById("saveContact");
   if (!btn) return;
 
-  if (isTelegram) {
-    // В Telegram WebView — открываем внешнюю ссылку на vcf-файл на GitHub Pages
-    btn.addEventListener("click", function (e) {
-      e.preventDefault();
-      // Прямая ссылка на vcf-файл, размещённый в репозитории
-      var vcfUrl = "https://fedortsova-diana.github.io/Advokat/Fedortsova-Diana.vcf";
-      window.open(vcfUrl, "_blank");
-    });
-  } else if (isIOS) {
-    // iOS Safari — data URI
-    btn.addEventListener("click", function (e) {
-      e.preventDefault();
-      var dataUri = "data:text/vcard;charset=utf-8," + encodeURIComponent(vcfText);
-      window.location.href = dataUri;
-    });
-  } else {
-    // Android / Desktop — Blob + click
-    btn.addEventListener("click", function (e) {
-      e.preventDefault();
-      try {
-        var blob = new Blob([vcfText], { type: "text/vcard;charset=utf-8" });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(function () {
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }, 1000);
-      } catch (err) {
-        // Fallback — прямая ссылка на файл
-        window.open("https://fedortsova-diana.github.io/Advokat/Fedortsova-Diana.vcf", "_blank");
+  btn.addEventListener("click", function (e) {
+    e.preventDefault();
+
+    var vcfText = makeVcard();
+    var filename = "Fedortsova-Diana.vcf";
+
+    /* ── Telegram (iOS и Android) ─────────────────────────────────────
+       window.location.href с data URI — файл скачивается/открывается
+       системой прямо поверх WebView-шторкой, сайт остаётся за ней.   */
+    if (isTelegram) {
+      if (isIOS) {
+        /* iOS Telegram: data URI — система открывает панель «Добавить контакт» */
+        window.location.href =
+          "data:text/x-vcard;charset=utf-8," + encodeURIComponent(vcfText);
+      } else {
+        /* Android Telegram: пробуем скрытый <a download>, если не сработало —
+           переходим по data URI в текущей вкладке                              */
+        try {
+          var blob = new Blob([vcfText], { type: "text/x-vcard;charset=utf-8" });
+          var url  = URL.createObjectURL(blob);
+          var a    = document.createElement("a");
+          a.href     = url;
+          a.download = filename;
+          a.style.display = "none";
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(function () {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 2000);
+        } catch (err) {
+          /* Fallback: data URI в текущей вкладке */
+          window.location.href =
+            "data:text/x-vcard;charset=utf-8," + encodeURIComponent(vcfText);
+        }
       }
-    });
-  }
+      return;
+    }
+
+    /* ── iOS Safari (не Telegram) ─────────────────────────────────── */
+    if (isIOS) {
+      window.location.href =
+        "data:text/x-vcard;charset=utf-8," + encodeURIComponent(vcfText);
+      return;
+    }
+
+    /* ── Android / Desktop (не Telegram) ─────────────────────────── */
+    try {
+      var blob2 = new Blob([vcfText], { type: "text/x-vcard;charset=utf-8" });
+      var url2  = URL.createObjectURL(blob2);
+      var a2    = document.createElement("a");
+      a2.href     = url2;
+      a2.download = filename;
+      a2.style.display = "none";
+      document.body.appendChild(a2);
+      a2.click();
+      setTimeout(function () {
+        document.body.removeChild(a2);
+        URL.revokeObjectURL(url2);
+      }, 2000);
+    } catch (err2) {
+      window.location.href =
+        "data:text/x-vcard;charset=utf-8," + encodeURIComponent(vcfText);
+    }
+  });
 })();
 </script>
 </body>
